@@ -154,9 +154,10 @@ def profile_dataframe(df: pl.DataFrame, file_path: str = "", use_llm: bool | Non
 
         # If we have a file path and GoldenCheck, use it
         if file_path:
+            import os
+
             # Determine whether to use LLM-enhanced scanning
             if use_llm is None:
-                import os
                 use_llm = bool(os.environ.get("OPENAI_API_KEY") or os.environ.get("ANTHROPIC_API_KEY"))
 
             if use_llm:
@@ -164,8 +165,14 @@ def profile_dataframe(df: pl.DataFrame, file_path: str = "", use_llm: bool | Non
                     from goldencheck import scan_file_with_llm
                     provider = "openai" if os.environ.get("OPENAI_API_KEY") else "anthropic"
                     findings, gc_profile = scan_file_with_llm(file_path, provider=provider)
-                except Exception:
-                    # Fall back to non-LLM scan if LLM fails
+                except ImportError:
+                    findings, gc_profile = scan_file(file_path)
+                except Exception as e:
+                    import logging
+                    logging.getLogger("goldenflow").warning(
+                        "LLM-enhanced scan failed (%s: %s), falling back to basic scan",
+                        type(e).__name__, e,
+                    )
                     findings, gc_profile = scan_file(file_path)
             else:
                 findings, gc_profile = scan_file(file_path)
@@ -173,20 +180,21 @@ def profile_dataframe(df: pl.DataFrame, file_path: str = "", use_llm: bool | Non
             for cp in gc_profile.columns:
                 # Map GoldenCheck types to our semantic types
                 gc_type = (cp.inferred_type or "").lower()
-                # First try GoldenCheck's semantic classifier types (person_name, currency, etc.)
-                semantic_type = _map_goldencheck_semantic_type(gc_type)
-                # Also check detected_format (email, phone, url) which is more specific
-                if cp.detected_format and cp.detected_format in ("email", "phone", "url"):
-                    semantic_type = cp.detected_format
-                # For basic dtype strings, map to our types
+                # Map basic dtype strings first
                 if gc_type in ("integer", "int", "int64", "i64"):
                     semantic_type = "numeric"
                 elif gc_type in ("float", "float64", "f64", "number", "numeric"):
                     semantic_type = "numeric"
                 elif gc_type in ("boolean", "bool"):
                     semantic_type = "boolean"
-                elif gc_type in ("date",):
+                elif gc_type in ("date", "datetime"):
                     semantic_type = "date"
+                else:
+                    # Try GoldenCheck's semantic classifier types (person_name, currency, etc.)
+                    semantic_type = _map_goldencheck_semantic_type(gc_type)
+                # detected_format (email, phone, url) is most specific — takes priority
+                if cp.detected_format and cp.detected_format in ("email", "phone", "url"):
+                    semantic_type = cp.detected_format
                 # For generic string types, fall back to regex-based inference
                 if semantic_type == "string" and gc_type in ("string", "str", "utf8"):
                     series = df[cp.name] if cp.name in df.columns else None

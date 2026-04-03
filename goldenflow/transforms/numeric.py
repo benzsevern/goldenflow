@@ -116,7 +116,13 @@ def comma_decimal(series: pl.Series) -> pl.Series:
         if val is None:
             return None
         v = str(val).strip()
-        # Remove thousand separators (dots) and replace decimal comma with dot
+        if "," not in v:
+            # No comma present — parse as-is (US format or plain number)
+            try:
+                return float(v)
+            except ValueError:
+                return None
+        # European format: dots are thousands, comma is decimal
         v = v.replace(".", "").replace(",", ".")
         try:
             return float(v)

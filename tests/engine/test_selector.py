@@ -7,6 +7,7 @@ import goldenflow.transforms.categorical  # noqa: F401
 
 from goldenflow.engine.profiler_bridge import ColumnProfile
 from goldenflow.engine.selector import FINDING_TRANSFORM_MAP, select_from_findings, select_transforms
+from goldenflow.transforms import get_transform
 
 
 def test_select_transforms_for_email_column():
@@ -91,6 +92,16 @@ def test_finding_map_uses_real_goldencheck_check_names():
         assert key in real_check_names, f"'{key}' is not a real GoldenCheck check name"
 
 
+def test_finding_map_transform_names_are_registered():
+    """All transform names in the map must be registered in the transform registry."""
+    import goldenflow  # noqa: F401 — ensure all transforms are registered
+    for check, transform_names in FINDING_TRANSFORM_MAP.items():
+        for name in transform_names:
+            assert get_transform(name) is not None, (
+                f"Transform '{name}' in FINDING_TRANSFORM_MAP['{check}'] is not registered"
+            )
+
+
 def test_finding_map_covers_actionable_checks():
     """All fixable GoldenCheck checks should have at least one transform mapping."""
     actionable_checks = [
@@ -170,9 +181,8 @@ def test_select_from_findings_detection_only_checks_return_empty():
         {"check": "null_correlation", "column": "a,b"},
     ]
     result = select_from_findings(findings)
-    # Either not in result, or mapped to empty list
-    for col in result:
-        assert len(result[col]) == 0 or col not in result
+    # Detection-only checks map to empty lists, so no columns should have transforms
+    assert result == {} or all(len(v) == 0 for v in result.values())
 
 
 def test_select_from_findings_ignores_unknown_checks():

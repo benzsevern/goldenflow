@@ -40,9 +40,10 @@ def email_normalize(series: pl.Series) -> pl.Series:
     def _normalize(val: str | None) -> str | None:
         if val is None:
             return None
+        original = val
         val = val.strip().lower()
         if not val or "@" not in val:
-            return None
+            return original  # preserve invalid values
         local, domain = val.rsplit("@", 1)
         # Strip +tag
         local = local.split("+")[0]

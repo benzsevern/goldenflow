@@ -65,13 +65,23 @@ def test_fill_zero():
 
 
 def test_comma_decimal():
-    s = pl.Series("v", ["1.234,56", "99,99", "1.000", "abc", None])
+    s = pl.Series("v", ["1.234,56", "99,99", "1.000,00", "abc", None])
     result = comma_decimal(s)
     assert result[0] == 1234.56
     assert result[1] == 99.99
-    assert result[2] == 1000.0
+    assert result[2] == 1000.0  # comma present → European format
     assert result[3] is None
     assert result[4] is None
+
+
+def test_comma_decimal_does_not_corrupt_us_format():
+    """US-format decimals without commas should be parsed correctly, not corrupted."""
+    s = pl.Series("v", ["1.5", "3.14", "0.99", "100"])
+    result = comma_decimal(s)
+    assert result[0] == 1.5
+    assert result[1] == 3.14
+    assert result[2] == 0.99
+    assert result[3] == 100.0
 
 
 def test_scientific_to_decimal():

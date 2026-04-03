@@ -339,7 +339,7 @@ result.manifest.records     # list[TransformRecord]
 result.manifest.created_at  # str
 ```
 
-### Available transforms (81)
+### Available transforms (76)
 **Text:** strip, lowercase, uppercase, title_case, normalize_unicode, normalize_quotes, collapse_whitespace, truncate, remove_punctuation, remove_html_tags, remove_urls, remove_digits, remove_emojis, fix_mojibake, normalize_line_endings, extract_numbers, pad_left, pad_right
 **Phone:** phone_e164, phone_national, phone_digits, phone_validate, phone_country_code
 **Name:** split_name, split_name_reverse, strip_titles, strip_suffixes, name_proper, initial_expand, nickname_standardize, merge_name

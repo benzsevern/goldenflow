@@ -185,6 +185,8 @@ def merge_name(
     df: pl.DataFrame, column: str, last_name_col: str = "last_name"
 ) -> pl.DataFrame:
     """Merge first_name and last_name columns into a full_name column."""
+    if last_name_col not in df.columns:
+        return df
     full_names = []
     first_list = df[column].to_list()
     last_list = df[last_name_col].to_list()

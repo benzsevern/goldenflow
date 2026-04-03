@@ -36,11 +36,12 @@ def test_email_normalize_lowercases():
     assert result[0] == "user@example.com"
 
 
-def test_email_normalize_preserves_none():
-    s = pl.Series("e", [None, ""])
+def test_email_normalize_preserves_none_and_invalid():
+    s = pl.Series("e", [None, "", "not-an-email"])
     result = email_normalize(s)
     assert result[0] is None
-    assert result[1] is None
+    assert result[1] == ""  # preserved, not dropped
+    assert result[2] == "not-an-email"  # preserved, not dropped
 
 
 def test_email_extract_domain():
